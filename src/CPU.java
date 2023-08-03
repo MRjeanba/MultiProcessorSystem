@@ -1,7 +1,7 @@
-import java.util.LinkedList;
-import java.util.Queue;
 
 public class CPU {
+	
+	public int id;
 	public boolean isAvailable;
 	public static int quantumCounter; // public cause all of the cpu's instance get the same quantum
 	public int cpuCounter;
@@ -11,8 +11,21 @@ public class CPU {
 		
 	}
 	
+	// this method assign a process to the cpu instance and set its availability to false
+	public void AssignProcess(Process p) {
+		this.runningProcess = p;
+		this.isAvailable = false;
+	}
+	
+	public void freeCpu() {
+		this.runningProcess = null;
+		this.isAvailable = true;
+	}
+	
 	
 	public void executeInstruction() {
-		// just increments PC of current running process
+		this.runningProcess.programCounter++;
+		this.cpuCounter++;
+		
 	}
 }
