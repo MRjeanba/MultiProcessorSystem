@@ -32,6 +32,6 @@ public class CPU {
 	public void executeInstruction() {
 		this.runningProcess.programCounter++;
 		this.cpuCounter++;
-		
+		this.runningProcess.currentInstruction++;
 	}
 }

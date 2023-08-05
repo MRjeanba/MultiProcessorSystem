@@ -103,55 +103,40 @@ public class CpuScheduler {
 		}
 		
 	}
-	
-	public void executeFCFS() {
-		
+	public void manageIoRequests() {
 		//if waiting queue is not empty, increment the counter and at modulo 2, pop the queue
-		if(!waitingQueue.isEmpty()) {
-			
-			if (waitingQCounter % 2 == 0) {
-				Process finishedIoProcess = waitingQueue.poll();
-				System.out.println("");
-				finishedIoProcess.stateToReady();
-				readyQueue.add(finishedIoProcess);
-				waitingQCounter = 0;
-			} else {
-				waitingQCounter++;
-			}
-			
-			
-		}
-		
-		// check if current processes on cpu are finished, if yes, move them to terminated queue
-		for (CPU cpu : cpus) {
-			
-			if (cpu.runningProcess!= null) {
-				// if true, then process is finished, move it to terminated queue and free the cpu
-				if(cpu.runningProcess.programCounter > cpu.runningProcess.totalExecTime) {
-					cpu.runningProcess.stateToTerminated();
-					terminatedQueue.add(cpu.runningProcess);
-					cpu.freeCpu();
-				}	
-			}
-		}
-		
-		// Output of running processes ? 
-		// if cpus processes are not done, we run the instructions, first we check for IO request
-		for (CPU cpu : cpus) {
-			if (cpu.runningProcess != null) {
-				// if true, then at this instruction, process should perform an IO request
-				if (cpu.runningProcess.programCounter == cpu.runningProcess.getIORequestInstructionNumber()) {
-					System.out.println("IO request for process: "  + cpu.runningProcess.id + " On cpu: " + cpu.id);
-					cpu.executeInstruction();
-					cpu.runningProcess.stateToWaiting();
-					waitingQueue.add(cpu.runningProcess);
-					cpu.freeCpu();
-					continue;
+				if(!waitingQueue.isEmpty()) {
+					System.out.println("waiting q counter  = " + waitingQCounter);
+					if ((waitingQCounter + 1) % 2 == 0) {
+						Process finishedIoProcess = waitingQueue.poll();
+						System.out.println("IO request successfull on processor: " + finishedIoProcess.id);
+						finishedIoProcess.stateToReady();
+						readyQueue.add(finishedIoProcess);
+						waitingQCounter = 0;
+					} else {
+						waitingQCounter++;
+					}
+					
+					
 				}
-				cpu.executeInstruction();	
-			}
-		}
-		
+	}
+	
+	public void checkIfProcessFinished() {
+		// check if current processes on cpu are finished, if yes, move them to terminated queue
+				for (CPU cpu : cpus) {
+					
+					if (cpu.runningProcess!= null) {
+						// if true, then process is finished, move it to terminated queue and free the cpu
+						if(cpu.runningProcess.programCounter > cpu.runningProcess.totalExecTime) {
+							cpu.runningProcess.stateToTerminated();
+							terminatedQueue.add(cpu.runningProcess);
+							cpu.freeCpu();
+						}	
+					}
+				}
+	}
+	
+	public void outputCurrentTick() {
 		System.out.println("Tick number: " + counter);
 		for (CPU cpu : cpus) {
 			System.out.println("cpu id: " + cpu.id);
@@ -163,8 +148,65 @@ public class CpuScheduler {
 			}
 		}
 		System.out.println("\n_____________________________");
-
+	}
+	
+	
+	
+	public void executeFCFS() {
 		
+		manageIoRequests();
+		
+		// check if current processes on cpu are finished, if yes, move them to terminated queue
+		checkIfProcessFinished();
+		
+		outputCurrentTick();
+
+		// Output of running processes ? 
+		// if cpus processes are not done, we run the instructions, first we check for IO request
+		for (CPU cpu : cpus) {
+			if (cpu.runningProcess != null) {
+				// if true, then at this instruction, process should perform an IO request
+				if (cpu.runningProcess.currentInstruction == cpu.runningProcess.getIORequestInstructionNumber()) {
+					System.out.println("IO request for process: "  + cpu.runningProcess.id + " On cpu: " + cpu.id);
+					cpu.executeInstruction();
+					cpu.runningProcess.stateToWaiting();
+					waitingQueue.add(cpu.runningProcess);
+					cpu.freeCpu();
+					continue;
+				}
+				cpu.executeInstruction();	
+			}
+		}
+		
+	}
+	
+	public void executeRR() {
+		
+		// check if IO is sucessful or not
+		manageIoRequests();
+		
+		// check if current processes on cpu are finished, if yes, move them to terminated queue
+		checkIfProcessFinished();
+		
+		// Output of running processes ? 
+		// Process progression for Round Robin
+		for (CPU cpu : cpus) {
+			if (cpu.runningProcess != null) {
+				
+				// check if current execution number 
+				
+				// if true, then at this instruction, process should perform an IO request
+				if (cpu.runningProcess.currentInstruction == cpu.runningProcess.getIORequestInstructionNumber()) {
+					System.out.println("IO request for process: "  + cpu.runningProcess.id + " On cpu: " + cpu.id);
+					cpu.executeInstruction();
+					cpu.runningProcess.stateToWaiting();
+					waitingQueue.add(cpu.runningProcess);
+					cpu.freeCpu();
+					continue;
+				}
+				cpu.executeInstruction();	
+			}
+		}
 	}
 	
 	// Non preemptive
@@ -187,7 +229,6 @@ public class CpuScheduler {
 			
 		}
 		
-		
 	}
 	
 	// Non preemptive
@@ -198,6 +239,22 @@ public class CpuScheduler {
 	// display a sort of menu to the user where he choose which algo the scheduler will use
 	public void run() {
 		
+		// condition should be while queues are not empty and that cpus are all non available, then run
+		while (!readyQueue.isEmpty() || !waitingQueue.isEmpty() || !areAllCpusEmpty() || !processes.isEmpty()) {
+			
+			// 1- we check if some processes "arrived" at time t
+			moveProcessesToReadyQueueIfArrived(counter);
+			
+			// 2- put the arrived processes on cpus if cpus are available
+			moveReadyProcessesToAvailableCpu();
+			
+			// once ready processes are assigned to available cpus, I execute the instructions nonpremptively for FCFS
+			executeFCFS();
+			
+			// increment the counter of the program
+			counter++;
+			
+		}
 	}
 
 	// Non preemptive you only go out of the cpu if your time quantum has exceeded

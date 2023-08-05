@@ -5,6 +5,7 @@ public class Process {
 	public String id;
 	public int totalExecTime; // execTime
 	public int programCounter;
+	public int currentInstruction;
 	public int arrivalTime;
 	public int finishedAtTime;
 	public int[] IORequestAtInstruction;
@@ -17,6 +18,7 @@ public class Process {
 		this.totalExecTime = nOfInstructions;
 		this.IORequestAtInstruction = instructionsRequest;
 		this.ioRequestNumber = 0;
+		this.programCounter = 1;
 	}
 	
 	/**
