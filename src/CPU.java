@@ -5,12 +5,14 @@ public class CPU {
 	public boolean isAvailable;
 	public static int quantumCounter; // static cause all of the cpu's instance get the same quantum
 	public int cpuCounter;
+	public int quantumComparator;
 	public Process runningProcess;
 	
 	public CPU(int id) {
 		this.id = id;
 		this.isAvailable = true;
 		this.runningProcess = null;
+		
 	}
 	
 	public static void setQuantum(int quantum) {
@@ -26,6 +28,7 @@ public class CPU {
 	public void freeCpu() {
 		this.runningProcess = null;
 		this.isAvailable = true;
+		this.quantumComparator = 0;
 	}
 	
 	
@@ -33,5 +36,6 @@ public class CPU {
 		this.runningProcess.programCounter++;
 		this.cpuCounter++;
 		this.runningProcess.currentInstruction++;
+		this.quantumComparator++;
 	}
 }

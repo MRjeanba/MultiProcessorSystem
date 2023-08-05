@@ -170,6 +170,7 @@ public class CpuScheduler {
 					System.out.println("IO request for process: "  + cpu.runningProcess.id + " On cpu: " + cpu.id);
 					cpu.executeInstruction();
 					cpu.runningProcess.stateToWaiting();
+					cpu.runningProcess.ioRequestNumber++;
 					waitingQueue.add(cpu.runningProcess);
 					cpu.freeCpu();
 					continue;
@@ -188,18 +189,27 @@ public class CpuScheduler {
 		// check if current processes on cpu are finished, if yes, move them to terminated queue
 		checkIfProcessFinished();
 		
-		// Output of running processes ? 
+		outputCurrentTick();
+
 		// Process progression for Round Robin
 		for (CPU cpu : cpus) {
 			if (cpu.runningProcess != null) {
 				
-				// check if current execution number 
-				
+				// check if current quantum comparator modulo quantum equals 0, if yes move process to ready Q
+				if ((cpu.quantumComparator + 1) % CPU.quantumCounter == 0) {
+					cpu.runningProcess.stateToReady();
+					System.out.println("Process " + cpu.runningProcess.id + " Moved to ready queue after quantum of: " + ++cpu.quantumComparator + "\nthis is the state of the process: " + cpu.runningProcess.state);
+					readyQueue.add(cpu.runningProcess);
+					System.out.println("ready queue content: " + readyQueue.toString());
+					cpu.freeCpu();
+					continue;
+				}
 				// if true, then at this instruction, process should perform an IO request
 				if (cpu.runningProcess.currentInstruction == cpu.runningProcess.getIORequestInstructionNumber()) {
 					System.out.println("IO request for process: "  + cpu.runningProcess.id + " On cpu: " + cpu.id);
 					cpu.executeInstruction();
 					cpu.runningProcess.stateToWaiting();
+					cpu.runningProcess.ioRequestNumber++;
 					waitingQueue.add(cpu.runningProcess);
 					cpu.freeCpu();
 					continue;
@@ -207,6 +217,7 @@ public class CpuScheduler {
 				cpu.executeInstruction();	
 			}
 		}
+
 	}
 	
 	// Non preemptive
@@ -217,9 +228,11 @@ public class CpuScheduler {
 			
 			// 1- we check if some processes "arrived" at time t
 			moveProcessesToReadyQueueIfArrived(counter);
-			
+						
 			// 2- put the arrived processes on cpus if cpus are available
 			moveReadyProcessesToAvailableCpu();
+			
+			// Output of running processes ?
 			
 			// once ready processes are assigned to available cpus, I execute the instructions nonpremptively for FCFS
 			executeFCFS();
@@ -239,6 +252,10 @@ public class CpuScheduler {
 	// display a sort of menu to the user where he choose which algo the scheduler will use
 	public void run() {
 		
+	}
+
+	// Non preemptive you only go out of the cpu if your time quantum has exceeded
+	public void RR() {
 		// condition should be while queues are not empty and that cpus are all non available, then run
 		while (!readyQueue.isEmpty() || !waitingQueue.isEmpty() || !areAllCpusEmpty() || !processes.isEmpty()) {
 			
@@ -249,16 +266,10 @@ public class CpuScheduler {
 			moveReadyProcessesToAvailableCpu();
 			
 			// once ready processes are assigned to available cpus, I execute the instructions nonpremptively for FCFS
-			executeFCFS();
-			
+			executeRR();
+
 			// increment the counter of the program
 			counter++;
-			
 		}
-	}
-
-	// Non preemptive you only go out of the cpu if your time quantum has exceeded
-	public void RR() {
-		
 	}
 }
