@@ -3,12 +3,18 @@ public class CPU {
 	
 	public int id;
 	public boolean isAvailable;
-	public static int quantumCounter; // public cause all of the cpu's instance get the same quantum
+	public static int quantumCounter; // static cause all of the cpu's instance get the same quantum
 	public int cpuCounter;
 	public Process runningProcess;
 	
-	public CPU() {
-		
+	public CPU(int id) {
+		this.id = id;
+		this.isAvailable = true;
+		this.runningProcess = null;
+	}
+	
+	public static void setQuantum(int quantum) {
+		CPU.quantumCounter = quantum;
 	}
 	
 	// this method assign a process to the cpu instance and set its availability to false

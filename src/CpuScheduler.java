@@ -1,4 +1,5 @@
 import java.security.cert.CertificateFactorySpi;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
@@ -11,6 +12,20 @@ public class CpuScheduler {
 	public Queue<Process> terminatedQueue;
 	public int counter;
 	public int waitingQCounter;
+	
+	public CpuScheduler(int nOfCpu, LinkedList<Process> pList, int quantum) {
+		CPU.setQuantum(quantum);
+		LinkedList<CPU> cpuList = new LinkedList<>();
+		for (int i = 0; i < nOfCpu; i++) {
+			cpuList.add(new CPU(i));
+		}
+		this.cpus = cpuList;
+		this.processes = pList;
+		this.readyQueue = new LinkedList<>();
+		this.waitingQueue = new LinkedList<>();
+		this.terminatedQueue = new LinkedList<>();
+		
+	}
 	
 	// check if the cpus on the cpu scheduler do not have a process
 	public boolean areAllCpusEmpty() {
@@ -53,6 +68,7 @@ public class CpuScheduler {
 			
 			// means the current process is ready
 			if(processes.get(i).arrivalTime == currentCounter) {
+				processes.get(i).stateToReady();
 				readyQueue.add(processes.get(i));
 				processes.remove(i);
 			}
@@ -81,7 +97,9 @@ public class CpuScheduler {
 		// while I can put processes on CPU, I move them on the available cores until no core is available or until i dont have anymore ready processes
 		while(cpusCanTakeProcess() && !readyQueue.isEmpty()) {
 			CPU availableCpu = getAvailableCpu();
-			availableCpu.AssignProcess(readyQueue.poll());
+			Process nextRunningProcess = readyQueue.poll();
+			nextRunningProcess.stateToRunning();
+			availableCpu.AssignProcess(nextRunningProcess);
 		}
 		
 	}
@@ -92,7 +110,10 @@ public class CpuScheduler {
 		if(!waitingQueue.isEmpty()) {
 			
 			if (waitingQCounter % 2 == 0) {
-				readyQueue.add(waitingQueue.poll());
+				Process finishedIoProcess = waitingQueue.poll();
+				System.out.println("");
+				finishedIoProcess.stateToReady();
+				readyQueue.add(finishedIoProcess);
 				waitingQCounter = 0;
 			} else {
 				waitingQCounter++;
@@ -103,27 +124,46 @@ public class CpuScheduler {
 		
 		// check if current processes on cpu are finished, if yes, move them to terminated queue
 		for (CPU cpu : cpus) {
-			// if true, then process is finished, move it to terminated queue and free the cpu
-			if(cpu.runningProcess.programCounter > cpu.runningProcess.totalExecTime) {
-				terminatedQueue.add(cpu.runningProcess);
-				cpu.freeCpu();
+			
+			if (cpu.runningProcess!= null) {
+				// if true, then process is finished, move it to terminated queue and free the cpu
+				if(cpu.runningProcess.programCounter > cpu.runningProcess.totalExecTime) {
+					cpu.runningProcess.stateToTerminated();
+					terminatedQueue.add(cpu.runningProcess);
+					cpu.freeCpu();
+				}	
 			}
 		}
 		
 		// Output of running processes ? 
 		// if cpus processes are not done, we run the instructions, first we check for IO request
 		for (CPU cpu : cpus) {
-			
-			// if true, then at this instruction, process should perform an IO request
-			if (cpu.runningProcess.programCounter == cpu.runningProcess.getIORequestInstructionNumber()) {
-				System.out.println("IO request for process: "  + cpu.runningProcess.id + " On cpu: " + cpu.id);
-				cpu.executeInstruction();
-				waitingQueue.add(cpu.runningProcess);
-				cpu.freeCpu();
-				continue;
+			if (cpu.runningProcess != null) {
+				// if true, then at this instruction, process should perform an IO request
+				if (cpu.runningProcess.programCounter == cpu.runningProcess.getIORequestInstructionNumber()) {
+					System.out.println("IO request for process: "  + cpu.runningProcess.id + " On cpu: " + cpu.id);
+					cpu.executeInstruction();
+					cpu.runningProcess.stateToWaiting();
+					waitingQueue.add(cpu.runningProcess);
+					cpu.freeCpu();
+					continue;
+				}
+				cpu.executeInstruction();	
 			}
-			cpu.executeInstruction();
 		}
+		
+		System.out.println("Tick number: " + counter);
+		for (CPU cpu : cpus) {
+			System.out.println("cpu id: " + cpu.id);
+			if (cpu.runningProcess != null) {
+				System.out.println("\tProcess inside this cpu: " + cpu.runningProcess.showProgress() + "\n---------------------------");
+
+			} else {
+				System.out.println("\tNo process on this cpu..."+ "\n---------------------------");
+			}
+		}
+		System.out.println("\n_____________________________");
+
 		
 	}
 	
@@ -131,7 +171,7 @@ public class CpuScheduler {
 	public void FCFS() {
 		
 		// condition should be while queues are not empty and that cpus are all non available, then run
-		while (!readyQueue.isEmpty() || !waitingQueue.isEmpty() || !areAllCpusEmpty()) {
+		while (!readyQueue.isEmpty() || !waitingQueue.isEmpty() || !areAllCpusEmpty() || !processes.isEmpty()) {
 			
 			// 1- we check if some processes "arrived" at time t
 			moveProcessesToReadyQueueIfArrived(counter);

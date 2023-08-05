@@ -10,9 +10,10 @@ public class Process {
 	public int[] IORequestAtInstruction;
 	public int ioRequestNumber;
 	
-	public Process(String id,int nOfInstructions, int[] instructionsRequest) {
-		this.state = "ready";
+	public Process(String id,int arrivalTime, int nOfInstructions, int[] instructionsRequest) {
+		this.state = "new";
 		this.id = id;
+		this.arrivalTime = arrivalTime;
 		this.totalExecTime = nOfInstructions;
 		this.IORequestAtInstruction = instructionsRequest;
 		this.ioRequestNumber = 0;
@@ -61,6 +62,10 @@ public class Process {
 	@Override
 	public String toString() {
 		return "Process informations: \nid: " + this.id + "\nInstructions: " + this.totalExecTime + "\nArray of instructions: " + Arrays.toString(this.IORequestAtInstruction) +
-				"\nDevices Requested: " + "\nState:" + this.state; 
+			 "\nState:" + this.state; 
+	}
+	public String showProgress() {
+		return "Process informations: \n\tid: " + this.id + "\n\tPC: " + this.programCounter + "\n\tArray of instructions: " + Arrays.toString(this.IORequestAtInstruction) +
+				 "\n\tState:" + this.state; 
 	}
 }
