@@ -1,6 +1,8 @@
-import java.security.cert.CertificateFactorySpi;
+
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.Queue;
 
 public class CpuScheduler {
@@ -8,10 +10,26 @@ public class CpuScheduler {
 	public List<CPU> cpus;
 	public List<Process> processes;
 	public Queue<Process> readyQueue;
+	public PriorityQueue<Process> sjfReadyQueue;
 	public Queue<Process> waitingQueue;
 	public Queue<Process> terminatedQueue;
 	public int counter;
 	public int waitingQCounter;
+	
+	// this class is used by the sjf algorithm to have a priority queue in function of the execution time of the process
+	class ProcessComparator implements Comparator<Process> {
+
+		@Override
+		public int compare(Process p1, Process p2) {
+			if (p1.totalExecTime > p2.totalExecTime)
+                return 1;
+            else if (p1.totalExecTime < p2.totalExecTime)
+                return -1;
+                            return 0;
+
+		}
+		
+	}
 	
 	public CpuScheduler(int nOfCpu, LinkedList<Process> pList, int quantum) {
 		CPU.setQuantum(quantum);
@@ -24,8 +42,10 @@ public class CpuScheduler {
 		this.readyQueue = new LinkedList<>();
 		this.waitingQueue = new LinkedList<>();
 		this.terminatedQueue = new LinkedList<>();
-		
+		this.sjfReadyQueue = new PriorityQueue<>(new ProcessComparator());
 	}
+	
+
 	
 	// check if the cpus on the cpu scheduler do not have a process
 	public boolean areAllCpusEmpty() {
@@ -69,10 +89,12 @@ public class CpuScheduler {
 			// means the current process is ready
 			if(processes.get(i).arrivalTime == currentCounter) {
 				processes.get(i).stateToReady();
+				sjfReadyQueue.add(processes.get(i));
 				readyQueue.add(processes.get(i));
-				processes.remove(i);
+				//processes.remove(i);
 			}
 		}
+		processes.clear();
 	}
 	
 	/**
@@ -103,15 +125,51 @@ public class CpuScheduler {
 		}
 		
 	}
+	/**
+	 * Similar to moveReadyProcessesToAvailableCpu except that it will replace running processes if their execution
+	 * time is higher than the ones in the ready queue
+	 */
+	public void moveReadyProcessesToCpuSjf() {
+		
+		// while I can put processes on CPU, I move them on the available cores until no core is available or until i dont have anymore ready processes
+		while(cpusCanTakeProcess() && !sjfReadyQueue.isEmpty()) {
+			CPU availableCpu = getAvailableCpu();
+			Process nextRunningProcess = sjfReadyQueue.poll();
+			nextRunningProcess.stateToRunning();
+			availableCpu.AssignProcess(nextRunningProcess);
+		}
+		
+		if (!sjfReadyQueue.isEmpty()) {
+			
+			for (CPU cpu : cpus) {
+				// if the condition is true, we need to swap theses two processes or just move 
+				if (cpu.isAvailable && !sjfReadyQueue.isEmpty()) {
+					cpu.AssignProcess(sjfReadyQueue.poll());
+					continue;
+				}
+				else if ((!cpu.isAvailable &&!sjfReadyQueue.isEmpty())  &&  cpu.runningProcess.totalExecTime > sjfReadyQueue.peek().totalExecTime) {
+					System.out.println("swap running process: " + cpu.runningProcess.id + " with process: " + sjfReadyQueue.peek().id);
+					cpu.runningProcess.stateToReady();
+					sjfReadyQueue.add(cpu.runningProcess);
+					cpu.freeCpu();
+					cpu.AssignProcess(sjfReadyQueue.poll());
+					continue;
+				}
+			}
+			
+		}
+
+	}
 	public void manageIoRequests() {
 		//if waiting queue is not empty, increment the counter and at modulo 2, pop the queue
 				if(!waitingQueue.isEmpty()) {
-					System.out.println("waiting q counter  = " + waitingQCounter);
+					System.out.println("\twaiting q counter  = " + waitingQCounter);
 					if ((waitingQCounter + 1) % 2 == 0) {
 						Process finishedIoProcess = waitingQueue.poll();
-						System.out.println("IO request successfull on processor: " + finishedIoProcess.id);
+						System.out.println("IO request fullfilled on next iteration for process: " + finishedIoProcess.id);
 						finishedIoProcess.stateToReady();
 						readyQueue.add(finishedIoProcess);
+						sjfReadyQueue.add(finishedIoProcess);
 						waitingQCounter = 0;
 					} else {
 						waitingQCounter++;
@@ -137,7 +195,7 @@ public class CpuScheduler {
 	}
 	
 	public void outputCurrentTick() {
-		System.out.println("Tick number: " + counter);
+		System.out.println("\tTick number: " + counter);
 		for (CPU cpu : cpus) {
 			System.out.println("cpu id: " + cpu.id);
 			if (cpu.runningProcess != null) {
@@ -220,6 +278,34 @@ public class CpuScheduler {
 
 	}
 	
+	public void executeSJF() {
+		// check if IO is sucessful or not
+		manageIoRequests();
+		
+		// check if current processes on cpu are finished, if yes, move them to terminated queue
+		checkIfProcessFinished();
+		
+		outputCurrentTick();
+
+		// Output of running processes ? 
+		// if cpus processes are not done, we run the instructions, first we check for IO request
+		for (CPU cpu : cpus) {
+			if (cpu.runningProcess != null) {
+				// if true, then at this instruction, process should perform an IO request
+				if (cpu.runningProcess.currentInstruction == cpu.runningProcess.getIORequestInstructionNumber()) {
+					System.out.println("IO request for process: "  + cpu.runningProcess.id + " On cpu: " + cpu.id);
+					cpu.executeInstruction();
+					cpu.runningProcess.stateToWaiting();
+					cpu.runningProcess.ioRequestNumber++;
+					waitingQueue.add(cpu.runningProcess);
+					cpu.freeCpu();
+					continue;
+				}
+				cpu.executeInstruction();	
+			}
+		}
+	}
+	
 	// Non preemptive
 	public void FCFS() {
 		
@@ -228,7 +314,7 @@ public class CpuScheduler {
 			
 			// 1- we check if some processes "arrived" at time t
 			moveProcessesToReadyQueueIfArrived(counter);
-						
+			
 			// 2- put the arrived processes on cpus if cpus are available
 			moveReadyProcessesToAvailableCpu();
 			
@@ -246,6 +332,23 @@ public class CpuScheduler {
 	
 	// Non preemptive
 	public void SJF() {
+		
+		// condition should be while queues are not empty and that cpus are all non available, then run
+		while (!sjfReadyQueue.isEmpty() || !waitingQueue.isEmpty() || !areAllCpusEmpty() || !processes.isEmpty()) {
+			
+			// 1- we check if some processes "arrived" at time t
+			moveProcessesToReadyQueueIfArrived(counter);
+			System.out.println("content of the ready queue: " + sjfReadyQueue.toString());
+
+			// 2- put the arrived processes on cpus if cpus are available
+			moveReadyProcessesToCpuSjf();
+			
+			// once ready processes are assigned to available cpus, I execute the instructions nonpremptively for FCFS
+			executeSJF();
+
+			// increment the counter of the program
+			counter++;
+		}
 		
 	}
 	

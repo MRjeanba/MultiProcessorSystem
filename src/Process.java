@@ -63,11 +63,11 @@ public class Process {
 	
 	@Override
 	public String toString() {
-		return "Process informations: \nid: " + this.id + "\nInstructions: " + this.totalExecTime + "\nArray of instructions: " + Arrays.toString(this.IORequestAtInstruction) +
-			 "\nState:" + this.state; 
+		return "\n\tid: " + this.id + "\n\tInstructions: " + this.totalExecTime + "\n\tArray of instructions: " + Arrays.toString(this.IORequestAtInstruction) +
+			 "\n\tState:" + this.state+"\n"; 
 	}
 	public String showProgress() {
-		return "Process informations: \n\tid: " + this.id + "\n\tPC: " + this.programCounter + "\n\tArray of instructions: " + Arrays.toString(this.IORequestAtInstruction) +
+		return "\n\tid: " + this.id + "\n\tPC: " + this.programCounter + "\n\tTotal execution time to do: " +this.totalExecTime +   "\n\tArray of instructions: " + Arrays.toString(this.IORequestAtInstruction) +
 				 "\n\tState:" + this.state; 
 	}
 }
