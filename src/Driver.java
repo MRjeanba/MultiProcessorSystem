@@ -7,7 +7,7 @@ public class Driver {
 		String fileContent =  Helper.getFileContent(fileName);
 		CpuScheduler scheduler = Helper.initScheduler(fileContent);
 		
-		scheduler.FCFS();
+		scheduler.run();
 	}
 
 }

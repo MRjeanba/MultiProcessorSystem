@@ -4,6 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.Scanner;
 
 public class CpuScheduler {
 	
@@ -79,23 +80,32 @@ public class CpuScheduler {
 	 * @param currentCounter: The current time 
 	 */
 	public void moveProcessesToReadyQueueIfArrived(int currentCounter) {
-		
 		if (processes.isEmpty()) {
 			return;
 		}
 		
-		for (int i = 0; i < processes.size(); i++) {
-			
+		for (int i = 0; i <= processes.size(); i++) {
+			//System.out.println("procesees size:" + processes.size() + "\n i value: "+ i);
+			if (processes.size() == 1 && processes.get(0).arrivalTime == counter) {
+				processes.get(0).stateToReady();
+				processes.get(0).setArrivalTime(currentCounter);
+				sjfReadyQueue.add(processes.get(0));
+				readyQueue.add(processes.get(0));
+				processes.remove(processes.get(0));
+				break;
+			}
 			// means the current process is ready
 			if(processes.get(i).arrivalTime == currentCounter) {
 				processes.get(i).stateToReady();
 				processes.get(i).setArrivalTime(currentCounter);
 				sjfReadyQueue.add(processes.get(i));
 				readyQueue.add(processes.get(i));
-				//processes.remove(i);
+				processes.remove(processes.get(i));
+				i=0;
 			}
 		}
-		processes.clear();
+		
+		//processes.clear();
 	}
 	
 	/**
@@ -123,7 +133,7 @@ public class CpuScheduler {
 			Process nextRunningProcess = readyQueue.poll();
 			// here we get the first response of the cpu to the process
 			if (nextRunningProcess.currentInstruction == 0) {
-				nextRunningProcess.timeOfFirstCpuResponse = counter - nextRunningProcess.arrivalTime;
+				nextRunningProcess.timeOfFirstCpuResponse = counter;
 			}
 			nextRunningProcess.stateToRunning();
 			availableCpu.AssignProcess(nextRunningProcess);
@@ -140,6 +150,10 @@ public class CpuScheduler {
 		while(cpusCanTakeProcess() && !sjfReadyQueue.isEmpty()) {
 			CPU availableCpu = getAvailableCpu();
 			Process nextRunningProcess = sjfReadyQueue.poll();
+			// here we get the first response of the cpu to the process
+			if (nextRunningProcess.currentInstruction == 0) {
+				nextRunningProcess.timeOfFirstCpuResponse = counter;
+			}
 			nextRunningProcess.stateToRunning();
 			availableCpu.AssignProcess(nextRunningProcess);
 		}
@@ -334,9 +348,9 @@ public class CpuScheduler {
 		for (CPU cpu : cpus) {
 			System.out.printf("CPU utilization for cpu "+ cpu.id +": ");
 			System.out.printf("%.2f%n" , cpu.computeCpuUtilization(counter));
-			System.out.println("__________________________________________________________________\nAverage waiting time for the processes:");
-			System.out.printf("%.2f time unit", computeAvgWaitTime());
 		}
+		System.out.println("__________________________________________________________________\nAverage waiting time for the processes:");
+		System.out.printf("%.2f time unit", computeAvgWaitTime());
 		System.out.println("\n__________________________________________________________________\nPrinting the turnaround time for each process");
 		
 		for (Process p : terminatedQueue) {
@@ -400,7 +414,39 @@ public class CpuScheduler {
 	
 	// display a sort of menu to the user where he choose which algo the scheduler will use
 	public void run() {
+		int userInput = 0;
+		Scanner sc = new Scanner(System.in);
+		System.out.println("Welcome to the CPU scheduler simulation!\nTo simulate one of the scheduling algorithm type one of these number:\n"
+				+ "1: First Come First Served\n"
+				+ "2: Shortest Job First\n"
+				+ "3: Round Robin");
 		
+		do {
+			try {
+				userInput = Integer.parseInt(sc.nextLine());
+				if ( userInput > 3 || userInput < 1 ) {
+					throw new Exception();
+				}
+			} catch (Exception e) {
+				System.out.println("Oops, please only enter a number between 1-3 inclusive:");
+			}
+		} while( userInput > 3 || userInput < 1);
+		
+		switch (userInput) {
+		case 1:
+			FCFS();
+			break;
+		case 2:
+			SJF();
+			break;
+		case 3:
+			RR();
+			break;
+		default:
+			break;
+		}
+		sc.close();
+	
 	}
 
 	// Non preemptive you only go out of the cpu if your time quantum has exceeded
