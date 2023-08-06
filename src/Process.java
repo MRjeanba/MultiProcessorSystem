@@ -8,6 +8,7 @@ public class Process {
 	public int currentInstruction;
 	public int arrivalTime;
 	public int finishedAtTime;
+	public int timeOfFirstCpuResponse;
 	public int[] IORequestAtInstruction;
 	public int ioRequestNumber;
 	
@@ -22,13 +23,6 @@ public class Process {
 	}
 	
 	/**
-	 * @return the current instruction at which the process is at
-	 */
-	public void getCurrentInstruction() {
-		
-	}
-	
-	/**
 	 * Get the instruction at which the next IO request will be executed
 	 * @return the instruction number when a new IO request should be executed
 	 */
@@ -38,6 +32,14 @@ public class Process {
 			return -1;
 		}
 		return this.IORequestAtInstruction.length == 0 ?  -1 :  this.IORequestAtInstruction[this.ioRequestNumber];
+	}
+	
+	public int getTurnaroundTime() {
+		return this.finishedAtTime - this.arrivalTime;
+	}
+	
+	public int getCpuResponseTime() {
+		return this.timeOfFirstCpuResponse - this.arrivalTime;
 	}
 	
 	
@@ -59,6 +61,12 @@ public class Process {
 	
 	public void stateToTerminated() {
 		this.state = "terminated";
+	}
+	public void setArrivalTime(int arrival) {
+		this.arrivalTime = arrival;
+	}
+	public void setFinishedTime(int finishedTime) {
+		this.finishedAtTime = finishedTime;
 	}
 	
 	@Override

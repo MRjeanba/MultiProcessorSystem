@@ -38,4 +38,14 @@ public class CPU {
 		this.runningProcess.currentInstruction++;
 		this.quantumComparator++;
 	}
+	
+	/**
+	 * 
+	 * @param systemCounter the actual time it took to the cpu scheduler to execute all the processes
+	 * @return the ratio of time cpu core / cpu scheduler
+	 */
+	public double computeCpuUtilization(int systemCounter) {
+		double ratio =  ((double) this.cpuCounter / (double) --systemCounter);
+		return ratio;
+	}
 }

@@ -89,6 +89,7 @@ public class CpuScheduler {
 			// means the current process is ready
 			if(processes.get(i).arrivalTime == currentCounter) {
 				processes.get(i).stateToReady();
+				processes.get(i).setArrivalTime(currentCounter);
 				sjfReadyQueue.add(processes.get(i));
 				readyQueue.add(processes.get(i));
 				//processes.remove(i);
@@ -120,6 +121,10 @@ public class CpuScheduler {
 		while(cpusCanTakeProcess() && !readyQueue.isEmpty()) {
 			CPU availableCpu = getAvailableCpu();
 			Process nextRunningProcess = readyQueue.poll();
+			// here we get the first response of the cpu to the process
+			if (nextRunningProcess.currentInstruction == 0) {
+				nextRunningProcess.timeOfFirstCpuResponse = counter - nextRunningProcess.arrivalTime;
+			}
 			nextRunningProcess.stateToRunning();
 			availableCpu.AssignProcess(nextRunningProcess);
 		}
@@ -187,9 +192,10 @@ public class CpuScheduler {
 						// if true, then process is finished, move it to terminated queue and free the cpu
 						if(cpu.runningProcess.programCounter > cpu.runningProcess.totalExecTime) {
 							cpu.runningProcess.stateToTerminated();
+							cpu.runningProcess.setFinishedTime(counter);
 							terminatedQueue.add(cpu.runningProcess);
 							cpu.freeCpu();
-						}	
+						}
 					}
 				}
 	}
@@ -306,6 +312,42 @@ public class CpuScheduler {
 		}
 	}
 	
+	/**
+	 * Compute the avg waiting time of all the processes once terminated
+	 * @return an double holding the avg waiting time of the processes
+	 */
+	public double computeAvgWaitTime() {
+		int numerator = 0;
+		
+		for (Process finishedProcess : terminatedQueue) {
+			numerator+= (finishedProcess.getTurnaroundTime() - finishedProcess.totalExecTime);
+		}
+		return ((double)numerator/(double)terminatedQueue.size());
+	}
+	
+	/**
+	 * This method just output the performance of the current algorithm used
+	 * @param algoName the name of the algorithm used
+	 */
+	public void printPerformance(String algoName) {
+		System.out.println("__________________________________________________________________\nPrinting the performance details of the " + algoName +" scheduling algorihtm:");
+		for (CPU cpu : cpus) {
+			System.out.printf("CPU utilization for cpu "+ cpu.id +": ");
+			System.out.printf("%.2f%n" , cpu.computeCpuUtilization(counter));
+			System.out.println("__________________________________________________________________\nAverage waiting time for the processes:");
+			System.out.printf("%.2f time unit", computeAvgWaitTime());
+		}
+		System.out.println("\n__________________________________________________________________\nPrinting the turnaround time for each process");
+		
+		for (Process p : terminatedQueue) {
+			System.out.println(p.id+": " + p.getTurnaroundTime() + " time unit");
+		}
+		System.out.println("\n__________________________________________________________________\nPrinting the CPU response time for each process");
+		for (Process p : terminatedQueue) {
+			System.out.println(p.id+": " + p.getCpuResponseTime() + " time unit");
+		}
+	}
+	
 	// Non preemptive
 	public void FCFS() {
 		
@@ -328,6 +370,8 @@ public class CpuScheduler {
 			
 		}
 		
+		printPerformance("FCFS");
+		
 	}
 	
 	// Non preemptive
@@ -349,6 +393,8 @@ public class CpuScheduler {
 			// increment the counter of the program
 			counter++;
 		}
+		printPerformance("SJF");
+
 		
 	}
 	
@@ -374,5 +420,8 @@ public class CpuScheduler {
 			// increment the counter of the program
 			counter++;
 		}
+		
+		printPerformance("RR");
+
 	}
 }
