@@ -26,6 +26,6 @@ local.properties
 .loadpath
 .factorypath
 output.txt
-.zip
+*.zip
 .png
-.pdf
+*.pdf
