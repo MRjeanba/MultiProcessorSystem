@@ -238,7 +238,8 @@ public class CpuScheduler {
 				}
 	}
 	
-	public String outputCurrentTick() {
+	public void outputCurrentTick() {
+		// the purpose of toReturnString was to dump the content of the string in a file but, we don't need that anymore
 		String toReturnString = "";
 		System.out.println("\tTick number: " + counter);
 		toReturnString += "\tTick number: " + counter+"\n";
@@ -255,7 +256,7 @@ public class CpuScheduler {
 		}
 		System.out.println("\n_____________________________");
 		toReturnString += "\n_____________________________\n";
-		return toReturnString;
+		//return toReturnString;
 	}
 	
 	
@@ -274,8 +275,9 @@ public class CpuScheduler {
 		// check if current processes on cpu are finished, if yes, move them to terminated queue
 		checkIfProcessFinished();
 		
-		String toWriteOnFileString = outputCurrentTick();
-		try
+		//String toWriteOnFileString = outputCurrentTick();
+		outputCurrentTick();
+		/*try
 		{
 		    FileWriter fw = new FileWriter("output.txt",true); //the true will append the new data
 		    fw.write(toWriteOnFileString);//appends the string to the file
@@ -284,7 +286,8 @@ public class CpuScheduler {
 		catch(IOException ioe)
 		{
 		    System.err.println("IOException: " + ioe.getMessage());
-		}
+		}*/
+		
 		// Output of running processes ? 
 		// if cpus processes are not done, we run the instructions, first we check for IO request
 		for (CPU cpu : cpus) {
@@ -307,19 +310,20 @@ public class CpuScheduler {
 	
 	public void executeRR() {
 		
-		File outputFile = new File("output.txt");
+		/*File outputFile = new File("output.txt");
 		try {
 			outputFile.createNewFile();
 		} catch (IOException e) {
 			e.printStackTrace();
-		} 
+		} */
 		
 		manageIoRequests();
 		
 		// check if current processes on cpu are finished, if yes, move them to terminated queue
 		checkIfProcessFinished();
 		
-		String toWriteOnFileString = outputCurrentTick();
+		outputCurrentTick();
+		/*String toWriteOnFileString = outputCurrentTick();
 		try
 		{
 		    FileWriter fw = new FileWriter("output.txt",true); //the true will append the new data
@@ -329,7 +333,7 @@ public class CpuScheduler {
 		catch(IOException ioe)
 		{
 		    System.err.println("IOException: " + ioe.getMessage());
-		}
+		}*/
 		// Process progression for Round Robin
 		for (CPU cpu : cpus) {
 			if (cpu.getRunningProcess() != null) {
@@ -372,8 +376,8 @@ public class CpuScheduler {
 		
 		// check if current processes on cpu are finished, if yes, move them to terminated queue
 		checkIfProcessFinished();
-		
-		String toWriteOnFileString = outputCurrentTick();
+		outputCurrentTick();
+		/*String toWriteOnFileString = outputCurrentTick();
 		try
 		{
 		    FileWriter fw = new FileWriter("output.txt",true); //the true will append the new data
@@ -383,7 +387,7 @@ public class CpuScheduler {
 		catch(IOException ioe)
 		{
 		    System.err.println("IOException: " + ioe.getMessage());
-		}
+		}*/
 
 		// Output of running processes ? 
 		// if cpus processes are not done, we run the instructions, first we check for IO request
@@ -421,7 +425,7 @@ public class CpuScheduler {
 	 * This method just output the performance of the current algorithm used
 	 * @param algoName the name of the algorithm used
 	 */
-	public String printPerformance(String algoName) {
+	public void printPerformance(String algoName) {
 		String toWritePerformance = "";
 		System.out.println("__________________________________________________________________\nPrinting the performance details of the " + algoName +" scheduling algorihtm:");
 		toWritePerformance += "__________________________________________________________________\nPrinting the performance details of the " + algoName +" scheduling algorihtm:\n";
@@ -448,7 +452,7 @@ public class CpuScheduler {
 			System.out.println(p.getId()+": " + p.getCpuResponseTime() + " time unit");
 			toWritePerformance += p.getId()+": " + p.getCpuResponseTime() + " time unit\n";
 		}
-		return toWritePerformance;
+		//return toWritePerformance;
 		
 	}
 	
@@ -474,7 +478,8 @@ public class CpuScheduler {
 			counter++;
 			
 		}
-		File outputFile = new File("output.txt");
+		printPerformance("FCFS");
+		/*File outputFile = new File("output.txt");
 		try {
 			outputFile.createNewFile();
 		} catch (IOException e) {
@@ -491,7 +496,7 @@ public class CpuScheduler {
 		catch(IOException ioe)
 		{
 		    System.err.println("IOException: " + ioe.getMessage());
-		}
+		}*/
 		
 	}
 	
@@ -514,7 +519,8 @@ public class CpuScheduler {
 			// increment the counter of the program
 			counter++;
 		}
-		File outputFile = new File("output.txt");
+		printPerformance("SJF");
+		/*File outputFile = new File("output.txt");
 		try {
 			outputFile.createNewFile();
 		} catch (IOException e) {
@@ -531,7 +537,7 @@ public class CpuScheduler {
 		catch(IOException ioe)
 		{
 		    System.err.println("IOException: " + ioe.getMessage());
-		}
+		}*/
 
 		
 	}
@@ -590,8 +596,8 @@ public class CpuScheduler {
 			// increment the counter of the program
 			counter++;
 		}
-		
-		File outputFile = new File("output.txt");
+		printPerformance("RR");
+		/*File outputFile = new File("output.txt");
 		try {
 			outputFile.createNewFile();
 		} catch (IOException e) {
@@ -608,7 +614,7 @@ public class CpuScheduler {
 		catch(IOException ioe)
 		{
 		    System.err.println("IOException: " + ioe.getMessage());
-		}
+		}*/
 
 	}
 }

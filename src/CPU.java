@@ -21,8 +21,9 @@ public class CPU {
 		return this.cpuCounter;
 	}
 	public int getQuantumComparator() {
-		return ++this.quantumComparator;
+		return (this.quantumComparator+ 1);
 	}
+	
 	public Process getRunningProcess() {
 		return this.runningProcess;
 	}

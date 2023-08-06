@@ -49,7 +49,7 @@ public class Process {
 		return currentInstruction;
 	}
 	public void incrementInstr() {
-		this.currentInstruction = currentInstruction++;
+		this.currentInstruction = this.currentInstruction + 1;
 	}
 
 
@@ -69,6 +69,7 @@ public class Process {
 
 
 	public void setTimeOfFirstCpuResponse(int timeOfFirstCpuResponse) {
+		System.out.println("Time of first cpu response for " + this.id +"is"+ timeOfFirstCpuResponse + " this is its first Current isntr" + this.currentInstruction);
 		this.timeOfFirstCpuResponse = timeOfFirstCpuResponse;
 	}
 
