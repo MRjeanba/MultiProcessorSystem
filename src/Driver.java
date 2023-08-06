@@ -6,7 +6,7 @@ public class Driver {
 	public static void main(String[] args) {
 		String fileContent =  Helper.getFileContent(fileName);
 		CpuScheduler scheduler = Helper.initScheduler(fileContent);
-		
+
 		scheduler.run();
 	}
 

@@ -1,4 +1,7 @@
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -22,9 +25,9 @@ public class CpuScheduler {
 
 		@Override
 		public int compare(Process p1, Process p2) {
-			if (p1.totalExecTime > p2.totalExecTime)
+			if (p1.getTotalExecTime() > p2.getTotalExecTime())
                 return 1;
-            else if (p1.totalExecTime < p2.totalExecTime)
+            else if (p1.getTotalExecTime() < p2.getTotalExecTime())
                 return -1;
                             return 0;
 
@@ -53,7 +56,7 @@ public class CpuScheduler {
 		
 		for (CPU cpu : cpus) {
 			// cpu has a process
-			if(cpu.runningProcess != null) {
+			if(cpu.getRunningProcess() != null) {
 				return false;
 			}
 		}
@@ -67,7 +70,7 @@ public class CpuScheduler {
 	public boolean cpusCanTakeProcess() {
 		
 		for (CPU cpu : cpus) {
-			if (cpu.runningProcess == null) {
+			if (cpu.getRunningProcess() == null) {
 				return true;
 			}
 		}
@@ -84,14 +87,16 @@ public class CpuScheduler {
 			return;
 		}
 		
-		for (int i = 0; i <= processes.size(); i++) {
-			//System.out.println("procesees size:" + processes.size() + "\n i value: "+ i);
+		/**for (int i = 0; i < processes.size(); i++) {
+			System.out.println("procesees size:" + processes.size() + "\n i value: "+ i);
+			System.out.println(processes);
 			if (processes.size() == 1 && processes.get(0).arrivalTime == counter) {
 				processes.get(0).stateToReady();
 				processes.get(0).setArrivalTime(currentCounter);
 				sjfReadyQueue.add(processes.get(0));
 				readyQueue.add(processes.get(0));
-				processes.remove(processes.get(0));
+				processes.clear();
+				System.out.println("cleared");
 				break;
 			}
 			// means the current process is ready
@@ -100,11 +105,24 @@ public class CpuScheduler {
 				processes.get(i).setArrivalTime(currentCounter);
 				sjfReadyQueue.add(processes.get(i));
 				readyQueue.add(processes.get(i));
-				processes.remove(processes.get(i));
+				processes.remove(i);
 				i=0;
 			}
+		}*/
+		LinkedList<Process> tempList = new LinkedList<>();
+		for (Process p : processes) {
+			if (p.getArrivalTime() == counter) {
+				p.stateToReady();
+				p.setArrivalTime(counter);
+				sjfReadyQueue.add(p);
+				readyQueue.add(p);
+				tempList.add(p);
+			}
 		}
-		
+		for (Process process : tempList) {
+			processes.remove(process);
+		}
+
 		//processes.clear();
 	}
 	
@@ -132,8 +150,8 @@ public class CpuScheduler {
 			CPU availableCpu = getAvailableCpu();
 			Process nextRunningProcess = readyQueue.poll();
 			// here we get the first response of the cpu to the process
-			if (nextRunningProcess.currentInstruction == 0) {
-				nextRunningProcess.timeOfFirstCpuResponse = counter;
+			if (nextRunningProcess.getCurrentInst() == 0) {
+				nextRunningProcess.setTimeOfFirstCpuResponse(counter);
 			}
 			nextRunningProcess.stateToRunning();
 			availableCpu.AssignProcess(nextRunningProcess);
@@ -151,8 +169,8 @@ public class CpuScheduler {
 			CPU availableCpu = getAvailableCpu();
 			Process nextRunningProcess = sjfReadyQueue.poll();
 			// here we get the first response of the cpu to the process
-			if (nextRunningProcess.currentInstruction == 0) {
-				nextRunningProcess.timeOfFirstCpuResponse = counter;
+			if (nextRunningProcess.getCurrentInst() == 0) {
+				nextRunningProcess.setTimeOfFirstCpuResponse(counter);
 			}
 			nextRunningProcess.stateToRunning();
 			availableCpu.AssignProcess(nextRunningProcess);
@@ -164,14 +182,20 @@ public class CpuScheduler {
 				// if the condition is true, we need to swap theses two processes or just move 
 				if (cpu.isAvailable && !sjfReadyQueue.isEmpty()) {
 					cpu.AssignProcess(sjfReadyQueue.poll());
+					if (cpu.getRunningProcess().getCurrentInst() == 0) {
+						cpu.getRunningProcess().setTimeOfFirstCpuResponse(counter);;
+					}
 					continue;
 				}
-				else if ((!cpu.isAvailable &&!sjfReadyQueue.isEmpty())  &&  cpu.runningProcess.totalExecTime > sjfReadyQueue.peek().totalExecTime) {
-					System.out.println("swap running process: " + cpu.runningProcess.id + " with process: " + sjfReadyQueue.peek().id);
-					cpu.runningProcess.stateToReady();
-					sjfReadyQueue.add(cpu.runningProcess);
+				else if ((!cpu.isAvailable &&!sjfReadyQueue.isEmpty())  &&  cpu.getRunningProcess().getTotalExecTime() > sjfReadyQueue.peek().getTotalExecTime()) {
+					System.out.println("swap running process: " + cpu.getRunningProcess().getId() + " with process: " + sjfReadyQueue.peek().getId());
+					cpu.getRunningProcess().stateToReady();
+					sjfReadyQueue.add(cpu.getRunningProcess());
 					cpu.freeCpu();
 					cpu.AssignProcess(sjfReadyQueue.poll());
+					if (cpu.getRunningProcess().getCurrentInst() == 0) {
+						cpu.getRunningProcess().setTimeOfFirstCpuResponse(counter);
+					}
 					continue;
 				}
 			}
@@ -185,7 +209,7 @@ public class CpuScheduler {
 					System.out.println("\twaiting q counter  = " + waitingQCounter);
 					if ((waitingQCounter + 1) % 2 == 0) {
 						Process finishedIoProcess = waitingQueue.poll();
-						System.out.println("IO request fullfilled on next iteration for process: " + finishedIoProcess.id);
+						System.out.println("IO request fullfilled on next iteration for process: " + finishedIoProcess.getId());
 						finishedIoProcess.stateToReady();
 						readyQueue.add(finishedIoProcess);
 						sjfReadyQueue.add(finishedIoProcess);
@@ -202,54 +226,76 @@ public class CpuScheduler {
 		// check if current processes on cpu are finished, if yes, move them to terminated queue
 				for (CPU cpu : cpus) {
 					
-					if (cpu.runningProcess!= null) {
+					if (cpu.getRunningProcess()!= null) {
 						// if true, then process is finished, move it to terminated queue and free the cpu
-						if(cpu.runningProcess.programCounter > cpu.runningProcess.totalExecTime) {
-							cpu.runningProcess.stateToTerminated();
-							cpu.runningProcess.setFinishedTime(counter);
-							terminatedQueue.add(cpu.runningProcess);
+						if(cpu.getRunningProcess().getProgramCounter() > cpu.getRunningProcess().getTotalExecTime()) {
+							cpu.getRunningProcess().stateToTerminated();
+							cpu.getRunningProcess().setFinishedTime(counter);
+							terminatedQueue.add(cpu.getRunningProcess());
 							cpu.freeCpu();
 						}
 					}
 				}
 	}
 	
-	public void outputCurrentTick() {
+	public String outputCurrentTick() {
+		String toReturnString = "";
 		System.out.println("\tTick number: " + counter);
+		toReturnString += "\tTick number: " + counter+"\n";
 		for (CPU cpu : cpus) {
-			System.out.println("cpu id: " + cpu.id);
-			if (cpu.runningProcess != null) {
-				System.out.println("\tProcess inside this cpu: " + cpu.runningProcess.showProgress() + "\n---------------------------");
-
+			System.out.println("cpu id: " + cpu.getId());
+			toReturnString +="cpu id: " + cpu.getId()+"\n";
+			if (cpu.getRunningProcess() != null) {
+				System.out.println("\tProcess inside this cpu: " + cpu.getRunningProcess().showProgress() + "\n---------------------------");
+				toReturnString += "\tProcess inside this cpu: " + cpu.getRunningProcess().showProgress() + "\n---------------------------\n";
 			} else {
 				System.out.println("\tNo process on this cpu..."+ "\n---------------------------");
+				toReturnString += "\tNo process on this cpu..."+ "\n---------------------------\n";
 			}
 		}
 		System.out.println("\n_____________________________");
+		toReturnString += "\n_____________________________\n";
+		return toReturnString;
 	}
 	
 	
 	
 	public void executeFCFS() {
+
+		File outputFile = new File("output.txt");
+		try {
+			outputFile.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} 
 		
 		manageIoRequests();
 		
 		// check if current processes on cpu are finished, if yes, move them to terminated queue
 		checkIfProcessFinished();
 		
-		outputCurrentTick();
-
+		String toWriteOnFileString = outputCurrentTick();
+		try
+		{
+		    FileWriter fw = new FileWriter("output.txt",true); //the true will append the new data
+		    fw.write(toWriteOnFileString);//appends the string to the file
+		    fw.close();
+		}
+		catch(IOException ioe)
+		{
+		    System.err.println("IOException: " + ioe.getMessage());
+		}
 		// Output of running processes ? 
 		// if cpus processes are not done, we run the instructions, first we check for IO request
 		for (CPU cpu : cpus) {
-			if (cpu.runningProcess != null) {
+			if (cpu.getRunningProcess() != null) {
 				// if true, then at this instruction, process should perform an IO request
-				if (cpu.runningProcess.currentInstruction == cpu.runningProcess.getIORequestInstructionNumber()) {
-					System.out.println("IO request for process: "  + cpu.runningProcess.id + " On cpu: " + cpu.id);
+				if (cpu.getRunningProcess().getCurrentInstruction() == cpu.getRunningProcess().getIORequestInstructionNumber()) {
+					System.out.println("IO request for process: "  + cpu.getRunningProcess().getId() + " On cpu: " + cpu.getId());
 					cpu.executeInstruction();
-					cpu.runningProcess.stateToWaiting();
-					cpu.runningProcess.ioRequestNumber++;
-					waitingQueue.add(cpu.runningProcess);
+					cpu.getRunningProcess().stateToWaiting();
+					cpu.getRunningProcess().ioRequestNumber++;
+					waitingQueue.add(cpu.getRunningProcess());
 					cpu.freeCpu();
 					continue;
 				}
@@ -261,34 +307,49 @@ public class CpuScheduler {
 	
 	public void executeRR() {
 		
-		// check if IO is sucessful or not
+		File outputFile = new File("output.txt");
+		try {
+			outputFile.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} 
+		
 		manageIoRequests();
 		
 		// check if current processes on cpu are finished, if yes, move them to terminated queue
 		checkIfProcessFinished();
 		
-		outputCurrentTick();
-
+		String toWriteOnFileString = outputCurrentTick();
+		try
+		{
+		    FileWriter fw = new FileWriter("output.txt",true); //the true will append the new data
+		    fw.write(toWriteOnFileString);//appends the string to the file
+		    fw.close();
+		}
+		catch(IOException ioe)
+		{
+		    System.err.println("IOException: " + ioe.getMessage());
+		}
 		// Process progression for Round Robin
 		for (CPU cpu : cpus) {
-			if (cpu.runningProcess != null) {
+			if (cpu.getRunningProcess() != null) {
 				
 				// check if current quantum comparator modulo quantum equals 0, if yes move process to ready Q
-				if ((cpu.quantumComparator + 1) % CPU.quantumCounter == 0) {
-					cpu.runningProcess.stateToReady();
-					System.out.println("Process " + cpu.runningProcess.id + " Moved to ready queue after quantum of: " + ++cpu.quantumComparator + "\nthis is the state of the process: " + cpu.runningProcess.state);
-					readyQueue.add(cpu.runningProcess);
+				if ((cpu.getQuantumComparator() + 1) % CPU.quantumCounter == 0) {
+					cpu.getRunningProcess().stateToReady();
+					System.out.println("Process " + cpu.getRunningProcess().getId() + " Moved to ready queue after quantum of: " + cpu.getQuantumComparator() + "\nthis is the state of the process: " + cpu.getRunningProcess().getState());
+					readyQueue.add(cpu.getRunningProcess());
 					System.out.println("ready queue content: " + readyQueue.toString());
 					cpu.freeCpu();
 					continue;
 				}
 				// if true, then at this instruction, process should perform an IO request
-				if (cpu.runningProcess.currentInstruction == cpu.runningProcess.getIORequestInstructionNumber()) {
-					System.out.println("IO request for process: "  + cpu.runningProcess.id + " On cpu: " + cpu.id);
+				if (cpu.getRunningProcess().getCurrentInstruction() == cpu.getRunningProcess().getIORequestInstructionNumber()) {
+					System.out.println("IO request for process: "  + cpu.getRunningProcess().getId() + " On cpu: " + cpu.getId());
 					cpu.executeInstruction();
-					cpu.runningProcess.stateToWaiting();
-					cpu.runningProcess.ioRequestNumber++;
-					waitingQueue.add(cpu.runningProcess);
+					cpu.getRunningProcess().stateToWaiting();
+					cpu.getRunningProcess().ioRequestNumber++;
+					waitingQueue.add(cpu.getRunningProcess());
 					cpu.freeCpu();
 					continue;
 				}
@@ -299,25 +360,42 @@ public class CpuScheduler {
 	}
 	
 	public void executeSJF() {
-		// check if IO is sucessful or not
+		
+		File outputFile = new File("output.txt");
+		try {
+			outputFile.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} 
+		
 		manageIoRequests();
 		
 		// check if current processes on cpu are finished, if yes, move them to terminated queue
 		checkIfProcessFinished();
 		
-		outputCurrentTick();
+		String toWriteOnFileString = outputCurrentTick();
+		try
+		{
+		    FileWriter fw = new FileWriter("output.txt",true); //the true will append the new data
+		    fw.write(toWriteOnFileString + "\n");//appends the string to the file
+		    fw.close();
+		}
+		catch(IOException ioe)
+		{
+		    System.err.println("IOException: " + ioe.getMessage());
+		}
 
 		// Output of running processes ? 
 		// if cpus processes are not done, we run the instructions, first we check for IO request
 		for (CPU cpu : cpus) {
-			if (cpu.runningProcess != null) {
+			if (cpu.getRunningProcess() != null) {
 				// if true, then at this instruction, process should perform an IO request
-				if (cpu.runningProcess.currentInstruction == cpu.runningProcess.getIORequestInstructionNumber()) {
-					System.out.println("IO request for process: "  + cpu.runningProcess.id + " On cpu: " + cpu.id);
+				if (cpu.getRunningProcess().getCurrentInstruction() == cpu.getRunningProcess().getIORequestInstructionNumber()) {
+					System.out.println("IO request for process: "  + cpu.getRunningProcess().getId() + " On cpu: " + cpu.getId());
 					cpu.executeInstruction();
-					cpu.runningProcess.stateToWaiting();
-					cpu.runningProcess.ioRequestNumber++;
-					waitingQueue.add(cpu.runningProcess);
+					cpu.getRunningProcess().stateToWaiting();
+					cpu.getRunningProcess().ioRequestNumber++;
+					waitingQueue.add(cpu.getRunningProcess());
 					cpu.freeCpu();
 					continue;
 				}
@@ -334,7 +412,7 @@ public class CpuScheduler {
 		int numerator = 0;
 		
 		for (Process finishedProcess : terminatedQueue) {
-			numerator+= (finishedProcess.getTurnaroundTime() - finishedProcess.totalExecTime);
+			numerator+= (finishedProcess.getTurnaroundTime() - finishedProcess.getTotalExecTime());
 		}
 		return ((double)numerator/(double)terminatedQueue.size());
 	}
@@ -343,27 +421,40 @@ public class CpuScheduler {
 	 * This method just output the performance of the current algorithm used
 	 * @param algoName the name of the algorithm used
 	 */
-	public void printPerformance(String algoName) {
+	public String printPerformance(String algoName) {
+		String toWritePerformance = "";
 		System.out.println("__________________________________________________________________\nPrinting the performance details of the " + algoName +" scheduling algorihtm:");
+		toWritePerformance += "__________________________________________________________________\nPrinting the performance details of the " + algoName +" scheduling algorihtm:\n";
 		for (CPU cpu : cpus) {
-			System.out.printf("CPU utilization for cpu "+ cpu.id +": ");
-			System.out.printf("%.2f%n" , cpu.computeCpuUtilization(counter));
+			System.out.printf("CPU utilization for cpu "+ cpu.getId() +": ");
+			double t = cpu.computeCpuUtilization(counter);
+			System.out.printf("%.2f%n" , t);
+			toWritePerformance += "CPU utilization for cpu "+ cpu.getId() +": "+t+"\n";
 		}
 		System.out.println("__________________________________________________________________\nAverage waiting time for the processes:");
+		double t = computeAvgWaitTime();
 		System.out.printf("%.2f time unit", computeAvgWaitTime());
 		System.out.println("\n__________________________________________________________________\nPrinting the turnaround time for each process");
-		
+		toWritePerformance += "__________________________________________________________________\nAverage waiting time for the processes:" +t + " time unit\n"+
+		"\n__________________________________________________________________\nPrinting the turnaround time for each process\n";
+				
 		for (Process p : terminatedQueue) {
-			System.out.println(p.id+": " + p.getTurnaroundTime() + " time unit");
+			System.out.println(p.getId()+": " + p.getTurnaroundTime() + " time unit");
+			toWritePerformance += p.getId()+": " + p.getTurnaroundTime() + " time unit\n";
 		}
 		System.out.println("\n__________________________________________________________________\nPrinting the CPU response time for each process");
+		toWritePerformance += "\n__________________________________________________________________\nPrinting the CPU response time for each process\n";
 		for (Process p : terminatedQueue) {
-			System.out.println(p.id+": " + p.getCpuResponseTime() + " time unit");
+			System.out.println(p.getId()+": " + p.getCpuResponseTime() + " time unit");
+			toWritePerformance += p.getId()+": " + p.getCpuResponseTime() + " time unit\n";
 		}
+		return toWritePerformance;
+		
 	}
 	
 	// Non preemptive
 	public void FCFS() {
+
 		
 		// condition should be while queues are not empty and that cpus are all non available, then run
 		while (!readyQueue.isEmpty() || !waitingQueue.isEmpty() || !areAllCpusEmpty() || !processes.isEmpty()) {
@@ -383,8 +474,24 @@ public class CpuScheduler {
 			counter++;
 			
 		}
+		File outputFile = new File("output.txt");
+		try {
+			outputFile.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} 
 		
-		printPerformance("FCFS");
+		String toWriteOnFileStringAgain = printPerformance("FCFS");
+		try
+		{
+		    FileWriter fw = new FileWriter("output.txt",true); //the true will append the new data
+		    fw.write(toWriteOnFileStringAgain);//appends the string to the file
+		    fw.close();
+		}
+		catch(IOException ioe)
+		{
+		    System.err.println("IOException: " + ioe.getMessage());
+		}
 		
 	}
 	
@@ -407,7 +514,24 @@ public class CpuScheduler {
 			// increment the counter of the program
 			counter++;
 		}
-		printPerformance("SJF");
+		File outputFile = new File("output.txt");
+		try {
+			outputFile.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} 
+		
+		String toWriteOnFileStringAgain = printPerformance("SJF");
+		try
+		{
+		    FileWriter fw = new FileWriter("output.txt",true); //the true will append the new data
+		    fw.write(toWriteOnFileStringAgain);//appends the string to the file
+		    fw.close();
+		}
+		catch(IOException ioe)
+		{
+		    System.err.println("IOException: " + ioe.getMessage());
+		}
 
 		
 	}
@@ -467,7 +591,24 @@ public class CpuScheduler {
 			counter++;
 		}
 		
-		printPerformance("RR");
+		File outputFile = new File("output.txt");
+		try {
+			outputFile.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} 
+		
+		String toWriteOnFileStringAgain = printPerformance("RR");
+		try
+		{
+		    FileWriter fw = new FileWriter("output.txt",true); //the true will append the new data
+		    fw.write(toWriteOnFileStringAgain);//appends the string to the file
+		    fw.close();
+		}
+		catch(IOException ioe)
+		{
+		    System.err.println("IOException: " + ioe.getMessage());
+		}
 
 	}
 }

@@ -1,14 +1,14 @@
 import java.util.Arrays;
 
 public class Process {
-	public String state;
-	public String id;
-	public int totalExecTime; // execTime
-	public int programCounter;
-	public int currentInstruction;
-	public int arrivalTime;
-	public int finishedAtTime;
-	public int timeOfFirstCpuResponse;
+	private String state;
+	private String id;
+	private int totalExecTime; // execTime
+	private int programCounter;
+	private int currentInstruction;
+	private int arrivalTime;
+	private int finishedAtTime;
+	private int timeOfFirstCpuResponse;
 	public int[] IORequestAtInstruction;
 	public int ioRequestNumber;
 	
@@ -22,6 +22,62 @@ public class Process {
 		this.programCounter = 1;
 	}
 	
+	
+	public String getState() {
+		return state;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+
+	public int getTotalExecTime() {
+		return totalExecTime;
+	}
+
+
+	public int getProgramCounter() {
+		return programCounter;
+	}
+	public void setProgramCounter(int programCounter) {
+		this.programCounter = ++programCounter;
+	}
+
+
+	public int getCurrentInstruction() {
+		return currentInstruction;
+	}
+	public void incrementInstr() {
+		this.currentInstruction = currentInstruction++;
+	}
+
+
+	public int getFinishedAtTime() {
+		return finishedAtTime;
+	}
+
+
+	public void setFinishedAtTime(int finishedAtTime) {
+		this.finishedAtTime = finishedAtTime;
+	}
+
+
+	public int getTimeOfFirstCpuResponse() {
+		return timeOfFirstCpuResponse;
+	}
+
+
+	public void setTimeOfFirstCpuResponse(int timeOfFirstCpuResponse) {
+		this.timeOfFirstCpuResponse = timeOfFirstCpuResponse;
+	}
+
+
+	public int getArrivalTime() {
+		return arrivalTime;
+	}
+
+
 	/**
 	 * Get the instruction at which the next IO request will be executed
 	 * @return the instruction number when a new IO request should be executed
@@ -41,7 +97,9 @@ public class Process {
 	public int getCpuResponseTime() {
 		return this.timeOfFirstCpuResponse - this.arrivalTime;
 	}
-	
+	public int getCurrentInst() {
+		return this.currentInstruction;
+	}
 	
 	public void stateToWaiting() {
 		this.state = "waiting";

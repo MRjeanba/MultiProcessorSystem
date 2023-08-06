@@ -25,3 +25,7 @@ tmp/
 local.properties
 .loadpath
 .factorypath
+output.txt
+.zip
+.png
+.pdf
